@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ShieldCheck, Mail, RefreshCw, X, KeyRound, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Mail, RefreshCw, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 
 export const OTPModal = () => {
@@ -8,7 +8,6 @@ export const OTPModal = () => {
     setOtpModalOpen,
     otpEmail,
     otpPurpose,
-    simulatedOTP,
     verifyOTP,
     resendOTP,
   } = useAuth();
@@ -133,19 +132,6 @@ export const OTPModal = () => {
             {otpEmail}
           </div>
         </div>
-
-        {/* Developer Helper OTP Banner */}
-        {simulatedOTP && (
-          <div className="mb-6 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-500/40 text-purple-700 dark:text-purple-200 text-xs flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <KeyRound className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-              <span>Demo OTP:</span>
-            </span>
-            <span className="font-mono font-bold text-sm tracking-widest text-purple-900 dark:text-white bg-purple-100 dark:bg-purple-900/80 px-2.5 py-1 rounded border border-purple-300 dark:border-purple-400/30">
-              {simulatedOTP}
-            </span>
-          </div>
-        )}
 
         {errorMsg && (
           <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">

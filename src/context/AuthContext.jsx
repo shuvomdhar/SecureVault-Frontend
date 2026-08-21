@@ -12,7 +12,6 @@ export const AuthProvider = ({ children }) => {
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [otpEmail, setOtpEmail] = useState('');
   const [otpPurpose, setOtpPurpose] = useState('Verification');
-  const [simulatedOTP, setSimulatedOTP] = useState('');
 
   // Toast Notification state
   const [toast, setToast] = useState(null);
@@ -84,7 +83,6 @@ export const AuthProvider = ({ children }) => {
 
       setOtpEmail(data.email);
       setOtpPurpose('Account Signup Verification');
-      if (data.otp) setSimulatedOTP(data.otp);
       setOtpModalOpen(true);
       showToast(`Account registration initiated! OTP sent to ${data.email}`, 'info');
       return data;
@@ -107,7 +105,6 @@ export const AuthProvider = ({ children }) => {
 
       setOtpEmail(data.email);
       setOtpPurpose('Login Verification');
-      if (data.otp) setSimulatedOTP(data.otp);
       setOtpModalOpen(true);
       showToast(`Login credentials accepted! OTP sent to ${data.email}`, 'info');
       return data;
@@ -143,7 +140,6 @@ export const AuthProvider = ({ children }) => {
       // Step 3: Trigger OTP Modal
       setOtpEmail(data.email);
       setOtpPurpose('Google OAuth Verification');
-      if (data.otp) setSimulatedOTP(data.otp);
       setOtpModalOpen(true);
       showToast(`Google authenticated! Verification OTP sent to ${data.email}`, 'info');
       return data;
@@ -184,7 +180,6 @@ export const AuthProvider = ({ children }) => {
       setToken(data.token);
       setUser(data.user);
       setOtpModalOpen(false);
-      setSimulatedOTP('');
       showToast(`Welcome back, ${data.user.name}! Authenticated successfully.`, 'success');
       return data;
     } catch (err) {
@@ -204,7 +199,6 @@ export const AuthProvider = ({ children }) => {
 
       if (!data.success) throw new Error(data.message || 'Resend OTP failed');
 
-      if (data.otp) setSimulatedOTP(data.otp);
       showToast(`A fresh OTP code has been sent to ${otpEmail}!`, 'info');
     } catch (err) {
       showToast(err.message, 'error');
@@ -227,7 +221,6 @@ export const AuthProvider = ({ children }) => {
         setOtpModalOpen,
         otpEmail,
         otpPurpose,
-        simulatedOTP,
         toast,
         showToast,
       }}
