@@ -1,8 +1,7 @@
-import { createContext, useState, useEffect, useCallback, useContext } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { auth, googleProvider, signInWithPopup } from '../config/firebase.config';
 import { fetchApi } from '../config/api.config';
-
-export const AuthContext = createContext();
+import { AuthContext } from './authContextValue';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -48,12 +47,11 @@ export const AuthProvider = ({ children }) => {
         if (data.success) {
           setUser(data.user);
         } else {
-          // Token invalid or expired
           logout();
         }
       } catch (err) {
-        console.error('Failed to fetch me:', err);
-        if (err.message.includes('401') || err.message.includes('Invalid') || err.message.includes('expired')) {
+        console.error('Failed to fetch me:', err.message);
+        if (err.message.includes('401') || err.message.includes('token') || err.message.includes('expired')) {
           logout();
         }
       } finally {
@@ -155,14 +153,14 @@ export const AuthProvider = ({ children }) => {
             message = 'Browser blocked Google popup. Please allow popups and try again.';
             break;
           case 'auth/unauthorized-domain':
-            message = "This domain (secure-vault-frontend-rho.vercel.app) isn't authorized in Firebase Auth settings.";
+            message = "Domain 'secure-vault-frontend-rho.vercel.app' is not authorized in Firebase Console.";
             break;
           default:
             message = `Google Auth Error: ${err.message}`;
         }
       }
       showToast(message, 'error');
-      throw new Error(message);
+      throw new Error(message, { cause: err });
     }
   };
 
@@ -233,13 +231,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export default useAuth;
