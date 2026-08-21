@@ -1,10 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Copy, RefreshCw, Check, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 
+const createPassword = (length, includeUpper, includeLower, includeNumbers, includeSymbols) => {
+  let chars = '';
+  if (includeLower) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (includeUpper) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (includeNumbers) chars += '0123456789';
+  if (includeSymbols) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+  if (!chars) {
+    chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  }
+
+  const cryptoObj = window.crypto || window.msCrypto;
+  const values = new Uint32Array(length);
+  cryptoObj.getRandomValues(values);
+
+  return Array.from(values, (value) => chars[value % chars.length]).join('');
+};
+
 export const PasswordGenerator = () => {
   const { showToast } = useAuth();
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(() => createPassword(16, true, true, true, true));
   const [length, setLength] = useState(16);
   const [includeUpper, setIncludeUpper] = useState(true);
   const [includeLower, setIncludeLower] = useState(true);
@@ -12,33 +30,32 @@ export const PasswordGenerator = () => {
   const [includeSymbols, setIncludeSymbols] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const generate = () => {
-    let chars = '';
-    if (includeLower) chars += 'abcdefghijklmnopqrstuvwxyz';
-    if (includeUpper) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    if (includeNumbers) chars += '0123456789';
-    if (includeSymbols) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
-
-    if (!chars) {
-      chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    }
-
-    let result = '';
-    const cryptoObj = window.crypto || window.msCrypto;
-    const values = new Uint32Array(length);
-    cryptoObj.getRandomValues(values);
-
-    for (let i = 0; i < length; i++) {
-      result += chars[values[i] % chars.length];
-    }
-
-    setPassword(result);
+  const generate = (options = {}) => {
+    setPassword(
+      createPassword(
+        options.length ?? length,
+        options.includeUpper ?? includeUpper,
+        options.includeLower ?? includeLower,
+        options.includeNumbers ?? includeNumbers,
+        options.includeSymbols ?? includeSymbols
+      )
+    );
     setCopied(false);
   };
 
-  useEffect(() => {
-    generate();
-  }, [length, includeUpper, includeLower, includeNumbers, includeSymbols]);
+  const handleLengthChange = (nextLength) => {
+    setLength(nextLength);
+    generate({ length: nextLength });
+  };
+
+  const handleOptionChange = (option, value) => {
+    const options = { [option]: value };
+    if (option === 'includeUpper') setIncludeUpper(value);
+    if (option === 'includeLower') setIncludeLower(value);
+    if (option === 'includeNumbers') setIncludeNumbers(value);
+    if (option === 'includeSymbols') setIncludeSymbols(value);
+    generate(options);
+  };
 
   const handleCopy = () => {
     if (!password) return;
@@ -132,17 +149,17 @@ export const PasswordGenerator = () => {
             min={8}
             max={32}
             value={length}
-            onChange={(e) => setLength(Number(e.target.value))}
+            onChange={(e) => handleLengthChange(Number(e.target.value))}
             className="w-36 accent-purple-600 cursor-pointer"
           />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Uppercase (A-Z)', state: includeUpper, setter: setIncludeUpper },
-            { label: 'Lowercase (a-z)', state: includeLower, setter: setIncludeLower },
-            { label: 'Numbers (0-9)', state: includeNumbers, setter: setIncludeNumbers },
-            { label: 'Symbols (!@#)', state: includeSymbols, setter: setIncludeSymbols },
+            { label: 'Uppercase (A-Z)', state: includeUpper, option: 'includeUpper' },
+            { label: 'Lowercase (a-z)', state: includeLower, option: 'includeLower' },
+            { label: 'Numbers (0-9)', state: includeNumbers, option: 'includeNumbers' },
+            { label: 'Symbols (!@#)', state: includeSymbols, option: 'includeSymbols' },
           ].map((item, idx) => (
             <label
               key={idx}
@@ -151,7 +168,7 @@ export const PasswordGenerator = () => {
               <input
                 type="checkbox"
                 checked={item.state}
-                onChange={(e) => item.setter(e.target.checked)}
+                onChange={(e) => handleOptionChange(item.option, e.target.checked)}
                 className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
               />
               {item.label}

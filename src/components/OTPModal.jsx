@@ -17,15 +17,19 @@ export const OTPModal = () => {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [timer, setTimer] = useState(60);
-  const inputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
+  const inputRefs = useRef([]);
 
   useEffect(() => {
-    if (otpModalOpen) {
+    if (!otpModalOpen) return undefined;
+
+    const timerId = setTimeout(() => {
       setDigits(['', '', '', '', '', '']);
       setErrorMsg('');
       setTimer(60);
-      setTimeout(() => inputRefs[0].current?.focus(), 150);
-    }
+      inputRefs.current[0]?.focus();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [otpModalOpen]);
 
   useEffect(() => {
@@ -47,13 +51,13 @@ export const OTPModal = () => {
 
     // Auto-advance to next input
     if (value && index < 5) {
-      inputRefs[index + 1].current?.focus();
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !digits[index] && index > 0) {
-      inputRefs[index - 1].current?.focus();
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
@@ -63,7 +67,7 @@ export const OTPModal = () => {
     if (/^\d{6}$/.test(pasted)) {
       const pasteArray = pasted.split('');
       setDigits(pasteArray);
-      inputRefs[5].current?.focus();
+      inputRefs.current[5]?.focus();
     }
   };
 
@@ -147,7 +151,9 @@ export const OTPModal = () => {
             {digits.map((digit, idx) => (
               <input
                 key={idx}
-                ref={inputRefs[idx]}
+                ref={(element) => {
+                  inputRefs.current[idx] = element;
+                }}
                 type="text"
                 maxLength={1}
                 value={digit}
@@ -161,7 +167,7 @@ export const OTPModal = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3.5 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-[0.99] transition shadow-lg shadow-purple-600/25 disabled:opacity-50"
+            className="w-full py-3.5 px-4 rounded-xl font-semibold text-white bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-[0.99] transition shadow-lg shadow-purple-600/25 disabled:opacity-50"
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
