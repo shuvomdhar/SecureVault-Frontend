@@ -17,6 +17,8 @@ export const OTPModal = () => {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [timer, setTimer] = useState(60);
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
   const inputRefs = useRef([]);
 
   useEffect(() => {
@@ -25,6 +27,7 @@ export const OTPModal = () => {
     const timerId = setTimeout(() => {
       setDigits(['', '', '', '', '', '']);
       setErrorMsg('');
+      setResendMsg('');
       setTimer(60);
       inputRefs.current[0]?.focus();
     }, 0);
@@ -91,12 +94,18 @@ export const OTPModal = () => {
   };
 
   const handleResend = async () => {
-    if (timer > 0) return;
+    if (timer > 0 || resending) return;
+    setResending(true);
+    setResendMsg('');
+    setErrorMsg('');
     try {
       await resendOTP();
       setTimer(60);
+      setResendMsg('✅ A fresh OTP code has been sent to your email!');
     } catch (err) {
-      setErrorMsg(err.message);
+      setErrorMsg(err.message || 'Failed to resend OTP.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -145,6 +154,12 @@ export const OTPModal = () => {
           </div>
         )}
 
+        {resendMsg && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
+            <span>{resendMsg}</span>
+          </div>
+        )}
+
         {/* OTP Input Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex justify-between gap-2 sm:gap-3" onPaste={handlePaste}>
@@ -183,11 +198,11 @@ export const OTPModal = () => {
           <span>Didn't receive the code?</span>
           <button
             onClick={handleResend}
-            disabled={timer > 0}
+            disabled={timer > 0 || resending}
             className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold disabled:text-slate-400 dark:disabled:text-slate-600 disabled:cursor-not-allowed flex items-center gap-1 transition"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            {timer > 0 ? `Resend in ${timer}s` : 'Resend Code'}
+            <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+            {resending ? 'Sending...' : timer > 0 ? `Resend in ${timer}s` : 'Resend Code'}
           </button>
         </div>
       </div>

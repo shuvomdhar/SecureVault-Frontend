@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { auth, googleProvider, signInWithPopup } from '../config/firebase.config';
-import { fetchApi } from '../config/api.config';
+import { fetchApi, API_BASE } from '../config/api.config';
 import { AuthContext } from './authContextValue';
 
 export const AuthProvider = ({ children }) => {
@@ -20,6 +20,11 @@ export const AuthProvider = ({ children }) => {
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4500);
+  }, []);
+
+  // Warm up the Render free-tier backend on mount so it's ready when the user submits
+  useEffect(() => {
+    fetch(`${API_BASE}/api/health`).catch(() => {});
   }, []);
 
   const logout = useCallback(() => {
