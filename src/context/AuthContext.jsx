@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [otpEmail, setOtpEmail] = useState('');
   const [otpPurpose, setOtpPurpose] = useState('Verification');
+  const [emailDeliveryError, setEmailDeliveryError] = useState('');
 
   // Toast Notification state
   const [toast, setToast] = useState(null);
@@ -83,8 +84,9 @@ export const AuthProvider = ({ children }) => {
 
       setOtpEmail(data.email);
       setOtpPurpose('Account Signup Verification');
+      setEmailDeliveryError(data.emailSent === false ? (data.emailError || 'Server failed to send email') : '');
       setOtpModalOpen(true);
-      showToast(`Account registration initiated! OTP sent to ${data.email}`, 'info');
+      showToast(data.message || `Account registration initiated!`, data.emailSent === false ? 'error' : 'info');
       return data;
     } catch (err) {
       showToast(err.message, 'error');
@@ -105,8 +107,9 @@ export const AuthProvider = ({ children }) => {
 
       setOtpEmail(data.email);
       setOtpPurpose('Login Verification');
+      setEmailDeliveryError(data.emailSent === false ? (data.emailError || 'Server failed to send email') : '');
       setOtpModalOpen(true);
-      showToast(`Login credentials accepted! OTP sent to ${data.email}`, 'info');
+      showToast(data.message || `Login credentials accepted!`, data.emailSent === false ? 'error' : 'info');
       return data;
     } catch (err) {
       showToast(err.message, 'error');
@@ -140,8 +143,9 @@ export const AuthProvider = ({ children }) => {
       // Step 3: Trigger OTP Modal
       setOtpEmail(data.email);
       setOtpPurpose('Google OAuth Verification');
+      setEmailDeliveryError(data.emailSent === false ? (data.emailError || 'Server failed to send email') : '');
       setOtpModalOpen(true);
-      showToast(`Google authenticated! Verification OTP sent to ${data.email}`, 'info');
+      showToast(data.message || `Google authenticated!`, data.emailSent === false ? 'error' : 'info');
       return data;
     } catch (err) {
       let message = err.message;
@@ -199,9 +203,17 @@ export const AuthProvider = ({ children }) => {
 
       if (!data.success) throw new Error(data.message || 'Resend OTP failed');
 
-      showToast(`A fresh OTP code has been sent to ${otpEmail}!`, 'info');
+      if (data.emailSent === false) {
+        setEmailDeliveryError(data.emailError || 'Server failed to send email');
+        throw new Error(`OTP generated, but email delivery failed (${data.emailError || 'Mail service error'})`);
+      } else {
+        setEmailDeliveryError('');
+        showToast(`A fresh OTP code has been sent to ${otpEmail}!`, 'info');
+      }
+      return data;
     } catch (err) {
       showToast(err.message, 'error');
+      throw err;
     }
   };
 
@@ -221,6 +233,7 @@ export const AuthProvider = ({ children }) => {
         setOtpModalOpen,
         otpEmail,
         otpPurpose,
+        emailDeliveryError,
         toast,
         showToast,
       }}
