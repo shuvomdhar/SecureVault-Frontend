@@ -8,7 +8,6 @@ export const OTPModal = () => {
     setOtpModalOpen,
     otpEmail,
     otpPurpose,
-    emailDeliveryError,
     verifyOTP,
     resendOTP,
   } = useAuth();
@@ -133,21 +132,6 @@ export const OTPModal = () => {
             {otpEmail}
           </div>
         </div>
-
-        {emailDeliveryError && (
-          <div className="mb-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs flex flex-col gap-1 text-left">
-            <div className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-200">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Email Delivery Notice</span>
-            </div>
-            <p className="text-[11px] leading-relaxed opacity-90">
-              Email could not be delivered by the server: <span className="font-mono font-semibold">{emailDeliveryError}</span>.
-            </p>
-            <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5">
-              💡 Please configure <code className="bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded font-mono">GOOGLE_APP_PASSWORD</code> in your server environment to receive emails.
-            </p>
-          </div>
-        )}
 
         {errorMsg && (
           <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
