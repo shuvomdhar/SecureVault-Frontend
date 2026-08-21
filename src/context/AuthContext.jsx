@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useCallback, useContext } from 'react';
 import { auth, googleProvider, signInWithPopup } from '../config/firebase.config';
+import { fetchApi } from '../config/api.config';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -17,23 +18,33 @@ export const AuthProvider = ({ children }) => {
   // Toast Notification state
   const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = 'info') => {
+  const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4500);
-  };
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('securevault-token');
+    setToken('');
+    setUser(null);
+    showToast('Logged out of SecureVault successfully.', 'info');
+  }, [showToast]);
 
   // Fetch current user if token exists
   useEffect(() => {
+    let isMounted = true;
+
     const fetchMe = async () => {
       if (!token) {
         setLoading(false);
         return;
       }
       try {
-        const res = await fetch('/api/auth/me', {
+        const data = await fetchApi('/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await res.json();
+        if (!isMounted) return;
+
         if (data.success) {
           setUser(data.user);
         } else {
@@ -42,24 +53,31 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Failed to fetch me:', err);
+        if (err.message.includes('401') || err.message.includes('Invalid') || err.message.includes('expired')) {
+          logout();
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchMe();
-  }, [token]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [logout, token]);
 
   // Initiate Email/Password Signup
   const signup = async (name, email, password) => {
     try {
-      const res = await fetch('/api/auth/register', {
+      const data = await fetchApi('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
+
+      if (!data.success) throw new Error(data.message || 'Registration failed');
 
       setOtpEmail(data.email);
       setOtpPurpose('Account Signup Verification');
@@ -76,13 +94,13 @@ export const AuthProvider = ({ children }) => {
   // Initiate Email/Password Login
   const login = async (email, password) => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const data = await fetchApi('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
+
+      if (!data.success) throw new Error(data.message || 'Login failed');
 
       setOtpEmail(data.email);
       setOtpPurpose('Login Verification');
@@ -111,13 +129,13 @@ export const AuthProvider = ({ children }) => {
       };
 
       // Step 2: Send Google user data to backend API to generate OTP
-      const res = await fetch('/api/auth/google', {
+      const data = await fetchApi('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
+
+      if (!data.success) throw new Error(data.message || 'Google Auth failed on backend');
 
       // Step 3: Trigger OTP Modal
       setOtpEmail(data.email);
@@ -137,7 +155,7 @@ export const AuthProvider = ({ children }) => {
             message = 'Browser blocked Google popup. Please allow popups and try again.';
             break;
           case 'auth/unauthorized-domain':
-            message = "This domain isn't authorized in Firebase Auth settings.";
+            message = "This domain (secure-vault-frontend-rho.vercel.app) isn't authorized in Firebase Auth settings.";
             break;
           default:
             message = `Google Auth Error: ${err.message}`;
@@ -151,13 +169,13 @@ export const AuthProvider = ({ children }) => {
   // Verify OTP Code
   const verifyOTP = async (otpCode) => {
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const data = await fetchApi('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: otpEmail, otp: otpCode }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
+
+      if (!data.success) throw new Error(data.message || 'OTP verification failed');
 
       localStorage.setItem('securevault-token', data.token);
       setToken(data.token);
@@ -175,27 +193,19 @@ export const AuthProvider = ({ children }) => {
   // Resend OTP Code
   const resendOTP = async () => {
     try {
-      const res = await fetch('/api/auth/resend-otp', {
+      const data = await fetchApi('/api/auth/resend-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: otpEmail }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
+
+      if (!data.success) throw new Error(data.message || 'Resend OTP failed');
 
       if (data.otp) setSimulatedOTP(data.otp);
       showToast(`A fresh OTP code has been sent to ${otpEmail}!`, 'info');
     } catch (err) {
       showToast(err.message, 'error');
     }
-  };
-
-  // Logout
-  const logout = () => {
-    localStorage.removeItem('securevault-token');
-    setToken('');
-    setUser(null);
-    showToast('Logged out of SecureVault successfully.', 'info');
   };
 
   return (
@@ -224,4 +234,12 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export default useAuth;

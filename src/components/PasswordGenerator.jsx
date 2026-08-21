@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Copy, RefreshCw, Check, Sparkles, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
+import { Copy, RefreshCw, Check, Sparkles } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
 
 export const PasswordGenerator = () => {
   const { showToast } = useAuth();

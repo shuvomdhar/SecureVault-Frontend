@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FolderPlus,
@@ -10,18 +10,14 @@ import {
   Copy,
   Trash2,
   Edit,
-  Shield,
-  ShieldAlert,
-  Check,
   X,
   Lock,
   Layers,
-  Sparkles,
-  Info,
   FolderKey,
   Pencil,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
+import { fetchApi } from '../config/api.config';
 
 export const PersonalInfoPage = () => {
   const navigate = useNavigate();
@@ -52,22 +48,13 @@ export const PersonalInfoPage = () => {
   // Mask reveal toggle map { [`${secretId}-${colIndex}`]: boolean }
   const [revealedFields, setRevealedFields] = useState({});
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    fetchData();
-  }, [user, selectedFolder]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch Folders
-      const resFolders = await fetch('/api/vault/folders', {
+      const dataFolders = await fetchApi('/api/vault/folders', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const dataFolders = await resFolders.json();
       if (dataFolders.success) {
         setFolders(dataFolders.folders);
       }
@@ -78,19 +65,31 @@ export const PersonalInfoPage = () => {
         url += `?folderId=${selectedFolder}`;
       }
 
-      const resSecrets = await fetch(url, {
+      const dataSecrets = await fetchApi(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const dataSecrets = await resSecrets.json();
       if (dataSecrets.success) {
         setSecrets(dataSecrets.secrets);
       }
     } catch (err) {
-      showToast('Failed to load vault data', 'error');
+      showToast(`Failed to load vault data: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedFolder, showToast, token]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [user, fetchData, navigate]);
 
   // Open Folder Modal for Create
   const openCreateFolderModal = () => {
@@ -118,7 +117,7 @@ export const PersonalInfoPage = () => {
         : '/api/vault/folders';
       const method = editingFolder ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const data = await fetchApi(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -126,7 +125,7 @@ export const PersonalInfoPage = () => {
         },
         body: JSON.stringify({ name: newFolderName }),
       });
-      const data = await res.json();
+
       if (!data.success) throw new Error(data.message);
 
       showToast(
@@ -150,11 +149,10 @@ export const PersonalInfoPage = () => {
     if (!window.confirm(`Delete folder '${name}'? Secrets inside will be moved to root storage.`)) return;
 
     try {
-      const res = await fetch(`/api/vault/folders/${folderId}`, {
+      const data = await fetchApi(`/api/vault/folders/${folderId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
       if (!data.success) throw new Error(data.message);
 
       showToast(`Folder '${name}' removed.`, 'info');
@@ -224,7 +222,7 @@ export const PersonalInfoPage = () => {
       const url = editingSecret ? `/api/vault/secrets/${editingSecret._id}` : '/api/vault/secrets';
       const method = editingSecret ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const data = await fetchApi(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -232,7 +230,7 @@ export const PersonalInfoPage = () => {
         },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+
       if (!data.success) throw new Error(data.message);
 
       showToast(`Secret '${data.secret.title}' saved successfully!`, 'success');
@@ -248,11 +246,10 @@ export const PersonalInfoPage = () => {
     if (!window.confirm(`Are you sure you want to delete secret '${title}'?`)) return;
 
     try {
-      const res = await fetch(`/api/vault/secrets/${secretId}`, {
+      const data = await fetchApi(`/api/vault/secrets/${secretId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
       if (!data.success) throw new Error(data.message);
 
       showToast(`Secret '${title}' deleted`, 'info');

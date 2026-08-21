@@ -1,7 +1,6 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Sun, Moon, LogOut, User, FolderKey } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Shield, Sun, Moon, LogOut, FolderKey } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
 import { useTheme } from '../context/ThemeContext';
 
 export const Navbar = () => {
